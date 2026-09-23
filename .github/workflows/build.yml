@@ -1,0 +1,66 @@
+name: Build NetHunter Kernel
+
+on:
+  workflow_dispatch: # ম্যানুয়ালি রান করার জন্য
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          submodules: 'recursive'
+
+      - name: Install Dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y git make bc bison flex libssl-dev wget tar python3 zip unzip build-essential libncurses-dev gcc-aarch64-linux-gnu gcc-arm-linux-gnueabi
+
+      - name: Setup Toolchain (Clang)
+        run: |
+          mkdir -p toolchains
+          cd toolchains
+          wget -O clang-r563880c.tar.gz "https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86/+archive/f8439f0628d799092dd07df440a6334cab28939c/clang-r563880c.tar.gz"
+          tar -xvf clang-r563880c.tar.gz
+          cd ..
+
+      - name: Merge Defconfigs
+        run: |
+          mkdir -p out
+          KCONFIG_CONFIG=out/.config scripts/kconfig/merge_config.sh -m -r \
+            arch/arm64/configs/vendor/sm8150-perf_defconfig \
+            arch/arm64/configs/vendor/oplus.config
+
+      - name: Build Kernel (Image.gz)
+        run: |
+          export PATH=$PWD/toolchains/bin:$PATH
+          make -j$(nproc) ARCH=arm64 O=out \
+            CROSS_COMPILE=aarch64-linux-gnu- \
+            CROSS_COMPILE_32=arm-linux-gnueabi- \
+            LLVM=1 LLVM_IAS=1 AS=llvm-as \
+            DTC_EXT=$PWD/dtc Image.gz
+
+      - name: Build Modules
+        run: |
+          export PATH=$PWD/toolchains/bin:$PATH
+          make -j$(nproc) ARCH=arm64 O=out \
+            CROSS_COMPILE=aarch64-linux-gnu- \
+            CROSS_COMPILE_32=arm-linux-gnueabi- \
+            LLVM=1 LLVM_IAS=1 AS=llvm-as \
+            DTC_EXT=$PWD/dtc modules
+
+      - name: Clone AnyKernel3 & Prepare Zip
+        run: |
+          git clone https://github.com/osm0sis/AnyKernel3.git -b master
+          cp out/arch/arm64/boot/Image.gz AnyKernel3/
+          mkdir -p AnyKernel3/modules
+          find out -name "*.ko" -exec cp {} AnyKernel3/modules/ \;
+          cd AnyKernel3
+          zip -r ../NetHunter_Kernel_OnePlus_SM8150.zip *
+
+      - name: Upload Flashable Zip
+        uses: actions/upload-artifact@v4
+        with:
+          name: NetHunter-Kernel-Zip
+          path: NetHunter_Kernel_OnePlus_SM8150.zip
