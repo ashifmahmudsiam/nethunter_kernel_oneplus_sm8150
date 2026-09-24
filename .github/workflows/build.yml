@@ -38,10 +38,12 @@ jobs:
         run: |
           export PATH=$PWD/toolchains/bin:$PATH
           mkdir -p out
+          # ডেভেলপারের build.sh অনুযায়ী ডিফল্ট কনফিগ মার্জ করা
           KCONFIG_CONFIG=out/.config scripts/kconfig/merge_config.sh -r \
             arch/arm64/configs/vendor/sm8150-perf_defconfig \
             arch/arm64/configs/vendor/oplus.config
-          # জরুরি কনফিগ অপশনগুলো জোর করে বসানো
+          
+          # জরুরি কনফিগ অপশনগুলো জোর করে বসানো (মিসিং ফাংশন দূর করার জন্য)
           echo "CONFIG_COMPAT=y" >> out/.config
           echo "CONFIG_NR_CPUS=8" >> out/.config
           echo "CONFIG_WERROR=n" >> out/.config
@@ -50,9 +52,29 @@ jobs:
           echo "CONFIG_IPC_LOGGING=y" >> out/.config
           echo "CONFIG_PCI_MSM=y" >> out/.config
           echo "CONFIG_PCI_MSM_LEGACY=y" >> out/.config
+          echo "CONFIG_PINCTRL=y" >> out/.config
+          echo "CONFIG_PINCTRL_MSM=y" >> out/.config
+          echo "CONFIG_QCOM_SMEM=y" >> out/.config
+          echo "CONFIG_MSM_BUS_SCALING=y" >> out/.config
+          echo "CONFIG_QCOM_ICE=y" >> out/.config
+          echo "CONFIG_ARM_SMMU=y" >> out/.config
+          echo "CONFIG_QCOM_SCM=y" >> out/.config
+          echo "CONFIG_QCOM_SMD=y" >> out/.config
+          echo "CONFIG_QCOM_RPMH=y" >> out/.config
+          echo "CONFIG_MAILBOX=y" >> out/.config
+          echo "CONFIG_ARCH_QCOM=y" >> out/.config
+          echo "CONFIG_MMC_SDHCI=y" >> out/.config
+          echo "CONFIG_MMC_SDHCI_PLTFM=y" >> out/.config
+          echo "CONFIG_CRYPTO_QTI=y" >> out/.config
+          echo "CONFIG_SCSI_UFS_QCOM=y" >> out/.config
+          echo "CONFIG_SCSI_UFS_CRYPTO_QTI=y" >> out/.config
+          echo "CONFIG_UFS_FEATURE_LPM=y" >> out/.config
+          echo "CONFIG_SPMI=y" >> out/.config
+          echo "CONFIG_SPMI_MSM_PMIC_ARB=y" >> out/.config
           echo "# CONFIG_MHI_BUS_ARCH_QCOM is not set" >> out/.config
           echo "# CONFIG_MHI_BUS is not set" >> out/.config
           
+          # অটো-কনফিগারেশন কমান্ড
           make ARCH=arm64 O=out \
             KCFLAGS="-Wno-error=implicit-function-declaration -Wno-error=declaration-after-statement" \
             CROSS_COMPILE=aarch64-linux-gnu- \
