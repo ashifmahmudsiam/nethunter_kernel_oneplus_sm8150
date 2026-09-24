@@ -33,12 +33,13 @@ jobs:
           KCONFIG_CONFIG=out/.config scripts/kconfig/merge_config.sh -r \
             arch/arm64/configs/vendor/sm8150-perf_defconfig \
             arch/arm64/configs/vendor/oplus.config
-          # জরুরি কনফিগ অপশনগুলো জোর করে বসানো (এরর সমাধানের জন্য)
+          # জরুরি কনফিগ অপশনগুলো জোর করে বসানো
           echo "CONFIG_COMPAT=y" >> out/.config
           echo "CONFIG_NR_CPUS=8" >> out/.config
           echo "CONFIG_WERROR=n" >> out/.config
           # অটো-কনফিগারেশন কমান্ড
           make ARCH=arm64 O=out \
+            KCFLAGS="-Wno-error=implicit-function-declaration -Wno-error=declaration-after-statement" \
             CROSS_COMPILE=aarch64-linux-gnu- \
             CROSS_COMPILE_32=arm-linux-gnueabi- \
             LLVM=1 LLVM_IAS=1 AS=llvm-as \
@@ -48,6 +49,7 @@ jobs:
         run: |
           export PATH=$PWD/toolchains/bin:$PATH
           make -j$(nproc) ARCH=arm64 O=out \
+            KCFLAGS="-Wno-error=implicit-function-declaration -Wno-error=declaration-after-statement" \
             CROSS_COMPILE=aarch64-linux-gnu- \
             CROSS_COMPILE_32=arm-linux-gnueabi- \
             LLVM=1 LLVM_IAS=1 AS=llvm-as \
@@ -57,6 +59,7 @@ jobs:
         run: |
           export PATH=$PWD/toolchains/bin:$PATH
           make -j$(nproc) ARCH=arm64 O=out \
+            KCFLAGS="-Wno-error=implicit-function-declaration -Wno-error=declaration-after-statement" \
             CROSS_COMPILE=aarch64-linux-gnu- \
             CROSS_COMPILE_32=arm-linux-gnueabi- \
             LLVM=1 LLVM_IAS=1 AS=llvm-as \
