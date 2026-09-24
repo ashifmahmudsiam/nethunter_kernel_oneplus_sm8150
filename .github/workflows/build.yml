@@ -29,9 +29,14 @@ jobs:
         run: |
           export PATH=$PWD/toolchains/bin:$PATH
           mkdir -p out
+          # ডিফল্ট কনফিগ মার্জ করা
           KCONFIG_CONFIG=out/.config scripts/kconfig/merge_config.sh -r \
             arch/arm64/configs/vendor/sm8150-perf_defconfig \
             arch/arm64/configs/vendor/oplus.config
+          # জরুরি কনফিগ অপশনগুলো জোর করে বসানো (এরর সমাধানের জন্য)
+          echo "CONFIG_COMPAT=y" >> out/.config
+          echo "CONFIG_NR_CPUS=8" >> out/.config
+          # অটো-কনফিগারেশন কমান্ড
           make ARCH=arm64 O=out \
             CROSS_COMPILE=aarch64-linux-gnu- \
             CROSS_COMPILE_32=arm-linux-gnueabi- \
