@@ -25,12 +25,18 @@ jobs:
           tar -xvf clang-r563880c.tar.gz
           cd ..
 
-      - name: Merge Defconfigs
+      - name: Merge Defconfigs and Auto-Configure
         run: |
+          export PATH=$PWD/toolchains/bin:$PATH
           mkdir -p out
-          KCONFIG_CONFIG=out/.config scripts/kconfig/merge_config.sh -m -r \
+          KCONFIG_CONFIG=out/.config scripts/kconfig/merge_config.sh -r \
             arch/arm64/configs/vendor/sm8150-perf_defconfig \
             arch/arm64/configs/vendor/oplus.config
+          make ARCH=arm64 O=out \
+            CROSS_COMPILE=aarch64-linux-gnu- \
+            CROSS_COMPILE_32=arm-linux-gnueabi- \
+            LLVM=1 LLVM_IAS=1 AS=llvm-as \
+            olddefconfig
 
       - name: Build Kernel (Image.gz)
         run: |
@@ -39,7 +45,7 @@ jobs:
             CROSS_COMPILE=aarch64-linux-gnu- \
             CROSS_COMPILE_32=arm-linux-gnueabi- \
             LLVM=1 LLVM_IAS=1 AS=llvm-as \
-            DTC_EXT=$PWD/dtc Image.gz
+            Image.gz
 
       - name: Build Modules
         run: |
@@ -48,7 +54,7 @@ jobs:
             CROSS_COMPILE=aarch64-linux-gnu- \
             CROSS_COMPILE_32=arm-linux-gnueabi- \
             LLVM=1 LLVM_IAS=1 AS=llvm-as \
-            DTC_EXT=$PWD/dtc modules
+            modules
 
       - name: Clone AnyKernel3 & Prepare Zip
         run: |
