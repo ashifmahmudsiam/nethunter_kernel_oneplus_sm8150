@@ -34,64 +34,27 @@ jobs:
           tar -xvf clang-r563880c.tar.gz
           cd ..
 
-      - name: Merge Defconfigs and Auto-Configure
+      - name: Merge Defconfigs (Developer Method)
         run: |
           export PATH=$PWD/toolchains/bin:$PATH
           mkdir -p out
-          KCONFIG_CONFIG=out/.config scripts/kconfig/merge_config.sh -r \
+          # ডেভেলপারের build.sh অনুযায়ী -m ফ্ল্যাগসহ merge
+          KCONFIG_CONFIG=out/.config scripts/kconfig/merge_config.sh -m -r \
             arch/arm64/configs/vendor/sm8150-perf_defconfig \
             arch/arm64/configs/vendor/oplus.config
           
-          echo "CONFIG_COMPAT=y" >> out/.config
-          echo "CONFIG_NR_CPUS=8" >> out/.config
-          echo "CONFIG_WERROR=n" >> out/.config
-          echo "CONFIG_PERF_EVENTS=y" >> out/.config
-          echo "CONFIG_HAVE_HW_BREAKPOINT=y" >> out/.config
-          echo "CONFIG_IPC_LOGGING=y" >> out/.config
-          echo "CONFIG_PCI_MSM=y" >> out/.config
-          echo "CONFIG_PCI_MSM_LEGACY=y" >> out/.config
-          echo "CONFIG_PINCTRL=y" >> out/.config
-          echo "CONFIG_PINCTRL_MSM=y" >> out/.config
-          echo "CONFIG_QCOM_SMEM=y" >> out/.config
-          echo "CONFIG_MSM_BUS_SCALING=y" >> out/.config
-          echo "CONFIG_QCOM_ICE=y" >> out/.config
-          echo "CONFIG_ARM_SMMU=y" >> out/.config
-          echo "CONFIG_QCOM_SCM=y" >> out/.config
-          echo "CONFIG_QCOM_SMD=y" >> out/.config
-          echo "CONFIG_QCOM_RPMH=y" >> out/.config
-          echo "CONFIG_MAILBOX=y" >> out/.config
-          echo "CONFIG_ARCH_QCOM=y" >> out/.config
-          echo "CONFIG_MMC_SDHCI=y" >> out/.config
-          echo "CONFIG_MMC_SDHCI_PLTFM=y" >> out/.config
-          echo "CONFIG_CRYPTO_QTI=y" >> out/.config
-          echo "CONFIG_SCSI_UFS_QCOM=y" >> out/.config
-          echo "CONFIG_SCSI_UFS_CRYPTO_QTI=y" >> out/.config
-          echo "CONFIG_UFS_FEATURE_LPM=y" >> out/.config
-          echo "CONFIG_SPMI=y" >> out/.config
-          echo "CONFIG_SPMI_MSM_PMIC_ARB=y" >> out/.config
-          echo "CONFIG_COMMON_CLK=y" >> out/.config
-          echo "CONFIG_COMMON_CLK_QCOM=y" >> out/.config
-          echo "CONFIG_QCOM_CLK_RPMH=y" >> out/.config
-          echo "CONFIG_QCOM_CLK_SMD_RPM=y" >> out/.config
-          echo "CONFIG_MSM_GCC_8150=y" >> out/.config
-          # ⚡ নতুন কনফিগ: ক্লক ফ্রেমওয়ার্কের জন্য জরুরি
-          echo "CONFIG_HAVE_CLK=y" >> out/.config
-          echo "CONFIG_CLKDEV_LOOKUP=y" >> out/.config
-          echo "CONFIG_COMMON_CLK_MSM=y" >> out/.config
-          echo "# CONFIG_MHI_BUS_ARCH_QCOM is not set" >> out/.config
-          echo "# CONFIG_MHI_BUS is not set" >> out/.config
-          
-          make ARCH=arm64 O=out \
-            KCFLAGS="-Wno-error=implicit-function-declaration -Wno-error=declaration-after-statement" \
+          # make oldconfig ব্যবহার করে বাকি সব কনফিগ ডিফল্টে সেট করা
+          # (এটি nconfig-এর কাজ স্বয়ংক্রিয়ভাবে করবে)
+          echo "y" | make ARCH=arm64 O=out \
             CROSS_COMPILE=aarch64-linux-gnu- \
             CROSS_COMPILE_32=arm-linux-gnueabi- \
             LLVM=1 LLVM_IAS=1 AS=llvm-as \
-            olddefconfig
+            oldconfig
 
       - name: Build Kernel (Image.gz)
         run: |
           export PATH=$PWD/toolchains/bin:$PATH
-          export KCFLAGS="-DFULL_THROTTLE_BOOST=1 -DCLKFLAG_NORETAIN_MEM=0 -DCLKFLAG_RETAIN_MEM=0 -DCLKFLAG_NORETAIN_PERIPH=0 -DCLKFLAG_RETAIN_PERIPH=0 -Wno-error=implicit-function-declaration -Wno-error=declaration-after-statement -Wno-error=unused-variable -Wno-error=int-conversion -Wno-error=macro-redefined -Wno-error=incompatible-pointer-types"
+          export KCFLAGS="-Wno-error=implicit-function-declaration -Wno-error=declaration-after-statement -Wno-error=unused-variable -Wno-error=int-conversion -Wno-error=macro-redefined -Wno-error=incompatible-pointer-types -Wno-error=shift-count-overflow"
           make -j$(nproc) ARCH=arm64 O=out \
             CROSS_COMPILE=aarch64-linux-gnu- \
             CROSS_COMPILE_32=arm-linux-gnueabi- \
@@ -101,7 +64,7 @@ jobs:
       - name: Build Modules
         run: |
           export PATH=$PWD/toolchains/bin:$PATH
-          export KCFLAGS="-DFULL_THROTTLE_BOOST=1 -DCLKFLAG_NORETAIN_MEM=0 -DCLKFLAG_RETAIN_MEM=0 -DCLKFLAG_NORETAIN_PERIPH=0 -DCLKFLAG_RETAIN_PERIPH=0 -Wno-error=implicit-function-declaration -Wno-error=declaration-after-statement -Wno-error=unused-variable -Wno-error=int-conversion -Wno-error=macro-redefined -Wno-error=incompatible-pointer-types"
+          export KCFLAGS="-Wno-error=implicit-function-declaration -Wno-error=declaration-after-statement -Wno-error=unused-variable -Wno-error=int-conversion -Wno-error=macro-redefined -Wno-error=incompatible-pointer-types -Wno-error=shift-count-overflow"
           make -j$(nproc) ARCH=arm64 O=out \
             CROSS_COMPILE=aarch64-linux-gnu- \
             CROSS_COMPILE_32=arm-linux-gnueabi- \
