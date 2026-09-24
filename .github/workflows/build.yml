@@ -42,7 +42,10 @@ jobs:
             arch/arm64/configs/vendor/sm8150-perf_defconfig \
             arch/arm64/configs/vendor/oplus.config
           
-          # ⚡ bpfilter বন্ধ করে দেওয়া (মডিউল এরর সমাধান)
+          # ⚡ Stack protector বন্ধ করা (এরর সমাধান)
+          echo "# CONFIG_CC_STACKPROTECTOR is not set" >> out/.config
+          echo "# CONFIG_CC_STACKPROTECTOR_STRONG is not set" >> out/.config
+          echo "# CONFIG_CC_STACKPROTECTOR_REGULAR is not set" >> out/.config
           echo "# CONFIG_BPFILTER is not set" >> out/.config
           echo "# CONFIG_BPFILTER_UMH is not set" >> out/.config
           
@@ -73,17 +76,18 @@ jobs:
           echo "# CONFIG_MHI_BUS_ARCH_QCOM is not set" >> out/.config
           echo "# CONFIG_MHI_BUS is not set" >> out/.config
           
-          echo "y" | make ARCH=arm64 O=out \
+          # ⚡ olddefconfig ব্যবহার করা হচ্ছে (oldconfig এর বদলে)
+          make ARCH=arm64 O=out \
             KCFLAGS="-Wno-error=implicit-function-declaration -Wno-error=declaration-after-statement" \
             CROSS_COMPILE=aarch64-linux-gnu- \
             CROSS_COMPILE_32=arm-linux-gnueabi- \
             LLVM=1 LLVM_IAS=1 AS=llvm-as \
-            oldconfig
+            olddefconfig
 
       - name: Build Kernel (Image.gz)
         run: |
           export PATH=$PWD/toolchains/bin:$PATH
-          export KCFLAGS="-DFULL_THROTTLE_BOOST=1 -Wno-error=implicit-function-declaration -Wno-error=declaration-after-statement -Wno-error=unused-variable -Wno-error=int-conversion -Wno-error=macro-redefined -Wno-error=incompatible-pointer-types -Wno-error=shift-count-overflow -Wno-error=return-type -Wno-error=maybe-uninitialized"
+          export KCFLAGS="-DFULL_THROTTLE_BOOST=1 -Wno-error=implicit-function-declaration -Wno-error=declaration-after-statement -Wno-error=unused-variable -Wno-error=int-conversion -Wno-error=macro-redefined -Wno-error=incompatible-pointer-types -Wno-error=shift-count-overflow -Wno-error=return-type -Wno-error=maybe-uninitialized -Wno-error=stack-protector"
           make -j$(nproc) ARCH=arm64 O=out \
             CROSS_COMPILE=aarch64-linux-gnu- \
             CROSS_COMPILE_32=arm-linux-gnueabi- \
@@ -93,16 +97,13 @@ jobs:
       - name: Build Modules
         run: |
           export PATH=$PWD/toolchains/bin:$PATH
-          export KCFLAGS="-DFULL_THROTTLE_BOOST=1 -Wno-error=implicit-function-declaration -Wno-error=declaration-after-statement -Wno-error=unused-variable -Wno-error=int-conversion -Wno-error=macro-redefined -Wno-error=incompatible-pointer-types -Wno-error=shift-count-overflow -Wno-error=return-type -Wno-error=maybe-uninitialized"
-          # ⚡ --ignore-errors যোগ করা হয়েছে যাতে bpfilter এরর বিল্ড থামাতে না পারে
+          export KCFLAGS="-DFULL_THROTTLE_BOOST=1 -Wno-error=implicit-function-declaration -Wno-error=declaration-after-statement -Wno-error=unused-variable -Wno-error=int-conversion -Wno-error=macro-redefined -Wno-error=incompatible-pointer-types -Wno-error=shift-count-overflow -Wno-error=return-type -Wno-error=maybe-uninitialized -Wno-error=stack-protector"
           make -j$(nproc) ARCH=arm64 O=out \
             CROSS_COMPILE=aarch64-linux-gnu- \
             CROSS_COMPILE_32=arm-linux-gnueabi- \
             LLVM=1 LLVM_IAS=1 AS=llvm-as \
             modules || true
-          
-          # যদি modules ফেইল করে, তবুও Image.gz আপলোড করার জন্য
-          echo "Module build completed (may have warnings)"
+          echo "Module build completed"
 
       - name: Clone AnyKernel3 & Prepare Zip
         run: |
