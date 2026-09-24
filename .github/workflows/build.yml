@@ -69,12 +69,15 @@ jobs:
           echo "CONFIG_UFS_FEATURE_LPM=y" >> out/.config
           echo "CONFIG_SPMI=y" >> out/.config
           echo "CONFIG_SPMI_MSM_PMIC_ARB=y" >> out/.config
-          # ⚡ নতুন কনফিগ: ক্লক ফ্রেমওয়ার্ক
           echo "CONFIG_COMMON_CLK=y" >> out/.config
           echo "CONFIG_COMMON_CLK_QCOM=y" >> out/.config
           echo "CONFIG_QCOM_CLK_RPMH=y" >> out/.config
           echo "CONFIG_QCOM_CLK_SMD_RPM=y" >> out/.config
           echo "CONFIG_MSM_GCC_8150=y" >> out/.config
+          # ⚡ নতুন কনফিগ: ক্লক ফ্রেমওয়ার্কের জন্য জরুরি
+          echo "CONFIG_HAVE_CLK=y" >> out/.config
+          echo "CONFIG_CLKDEV_LOOKUP=y" >> out/.config
+          echo "CONFIG_COMMON_CLK_MSM=y" >> out/.config
           echo "# CONFIG_MHI_BUS_ARCH_QCOM is not set" >> out/.config
           echo "# CONFIG_MHI_BUS is not set" >> out/.config
           
