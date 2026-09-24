@@ -17,13 +17,26 @@ jobs:
           sudo apt update
           sudo apt install -y git make bc bison flex libssl-dev wget tar python3 zip unzip build-essential libncurses-dev gcc-aarch64-linux-gnu gcc-arm-linux-gnueabi
 
+      - name: Cache Toolchain
+        uses: actions/cache@v4
+        with:
+          path: toolchains
+          key: ${{ runner.os }}-clang-r563880c-${{ hashFiles('.github/workflows/build.yml') }}
+          restore-keys: |
+            ${{ runner.os }}-clang-r563880c-
+
       - name: Setup Toolchain (Clang)
         run: |
-          mkdir -p toolchains
-          cd toolchains
-          wget -O clang-r563880c.tar.gz "https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86/+archive/f8439f0628d799092dd07df440a6334cab28939c/clang-r563880c.tar.gz"
-          tar -xvf clang-r563880c.tar.gz
-          cd ..
+          if [ ! -d "toolchains/bin" ]; then
+            echo "Toolchain not found in cache. Downloading..."
+            mkdir -p toolchains
+            cd toolchains
+            wget -O clang-r563880c.tar.gz "https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86/+archive/f8439f0628d799092dd07df440a6334cab28939c/clang-r563880c.tar.gz"
+            tar -xvf clang-r563880c.tar.gz
+            cd ..
+          else
+            echo "Toolchain found in cache. Skipping download."
+          fi
 
       - name: Merge Defconfigs and Auto-Configure
         run: |
@@ -35,6 +48,8 @@ jobs:
           echo "CONFIG_COMPAT=y" >> out/.config
           echo "CONFIG_NR_CPUS=8" >> out/.config
           echo "CONFIG_WERROR=n" >> out/.config
+          echo "CONFIG_PERF_EVENTS=y" >> out/.config
+          echo "CONFIG_HAVE_HW_BREAKPOINT=y" >> out/.config
           make ARCH=arm64 O=out \
             KCFLAGS="-Wno-error=implicit-function-declaration -Wno-error=declaration-after-statement" \
             CROSS_COMPILE=aarch64-linux-gnu- \
@@ -45,7 +60,7 @@ jobs:
       - name: Build Kernel (Image.gz)
         run: |
           export PATH=$PWD/toolchains/bin:$PATH
-          export KCFLAGS="-DFULL_THROTTLE_BOOST=1 -Wno-error=implicit-function-declaration -Wno-error=declaration-after-statement"
+          export KCFLAGS="-DFULL_THROTTLE_BOOST=1 -Wno-error=implicit-function-declaration -Wno-error=declaration-after-statement -Wno-error=unused-variable"
           make -j$(nproc) ARCH=arm64 O=out \
             CROSS_COMPILE=aarch64-linux-gnu- \
             CROSS_COMPILE_32=arm-linux-gnueabi- \
@@ -55,7 +70,7 @@ jobs:
       - name: Build Modules
         run: |
           export PATH=$PWD/toolchains/bin:$PATH
-          export KCFLAGS="-DFULL_THROTTLE_BOOST=1 -Wno-error=implicit-function-declaration -Wno-error=declaration-after-statement"
+          export KCFLAGS="-DFULL_THROTTLE_BOOST=1 -Wno-error=implicit-function-declaration -Wno-error=declaration-after-statement -Wno-error=unused-variable"
           make -j$(nproc) ARCH=arm64 O=out \
             CROSS_COMPILE=aarch64-linux-gnu- \
             CROSS_COMPILE_32=arm-linux-gnueabi- \
