@@ -28,40 +28,35 @@ jobs:
         if: steps.cache-toolchain.outputs.cache-hit != 'true'
         run: |
           echo "Downloading Toolchain..."
-          mkdir -p toolchains
+          mkdir -p toolchains/bin
           cd toolchains
           wget -O clang-r563880c.tar.gz "https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86/+archive/f8439f0628d799092dd07df440a6334cab28939c/clang-r563880c.tar.gz"
           tar -xvf clang-r563880c.tar.gz
           cd ..
 
-      - name: Merge Defconfigs (Developer Method)
+      - name: Merge Defconfigs (Base + NetHunter)
         run: |
           export PATH=$PWD/toolchains/bin:$PATH
           mkdir -p out
+          # বেস কনফিগ (sm8150-perf + oplus)
           KCONFIG_CONFIG=out/.config scripts/kconfig/merge_config.sh -m -r \
             arch/arm64/configs/vendor/sm8150-perf_defconfig \
             arch/arm64/configs/vendor/oplus.config
           
-          # ⚡ Wi-Fi ফ্রেম ইনজেকশন কনফিগ বন্ধ করা (মিসিং হেডার ফাইল এরর সমাধান)
-          echo "# CONFIG_FRAME_INJECTION is not set" >> out/.config
-          echo "# CONFIG_WLAN_FEATURE_FRAME_INJECTION is not set" >> out/.config
-          echo "# CONFIG_HDD_FRAME_INJECTION is not set" >> out/.config
+          # NetHunter-এর আসল কনফিগ মার্জ
+          KCONFIG_CONFIG=out/.config scripts/kconfig/merge_config.sh -m -r \
+            nethunter/nethunter_defconfig
           
-          # বাকি কনফিগ ডিফল্টে সেট করা (ডেভেলপারের nconfig-এর替代)
+          # কনফিগ আপডেট
           make ARCH=arm64 O=out \
             CROSS_COMPILE=aarch64-linux-gnu- \
             CROSS_COMPILE_32=arm-linux-gnueabi- \
             LLVM=1 LLVM_IAS=1 AS=llvm-as \
             olddefconfig
-          
-          # olddefconfig-এর পরে আবার নিশ্চিত করা
-          sed -i 's/CONFIG_FRAME_INJECTION=y/# CONFIG_FRAME_INJECTION is not set/' out/.config
-          sed -i 's/CONFIG_WLAN_FEATURE_FRAME_INJECTION=y/# CONFIG_WLAN_FEATURE_FRAME_INJECTION is not set/' out/.config
 
       - name: Build Kernel (Image.gz)
         run: |
           export PATH=$PWD/toolchains/bin:$PATH
-          export KCFLAGS="-Wno-error=implicit-function-declaration -Wno-error=declaration-after-statement -Wno-error=unused-variable -Wno-error=int-conversion -Wno-error=macro-redefined -Wno-error=incompatible-pointer-types -Wno-error=shift-count-overflow"
           make -j$(nproc) ARCH=arm64 O=out \
             CROSS_COMPILE=aarch64-linux-gnu- \
             CROSS_COMPILE_32=arm-linux-gnueabi- \
@@ -71,20 +66,18 @@ jobs:
       - name: Build Modules
         run: |
           export PATH=$PWD/toolchains/bin:$PATH
-          export KCFLAGS="-Wno-error=implicit-function-declaration -Wno-error=declaration-after-statement -Wno-error=unused-variable -Wno-error=int-conversion -Wno-error=macro-redefined -Wno-error=incompatible-pointer-types -Wno-error=shift-count-overflow"
           make -j$(nproc) ARCH=arm64 O=out \
             CROSS_COMPILE=aarch64-linux-gnu- \
             CROSS_COMPILE_32=arm-linux-gnueabi- \
             LLVM=1 LLVM_IAS=1 AS=llvm-as \
-            modules || true
-          echo "Module build completed"
+            modules
 
       - name: Clone AnyKernel3 & Prepare Zip
         run: |
           git clone https://github.com/osm0sis/AnyKernel3.git -b master
           cp out/arch/arm64/boot/Image.gz AnyKernel3/
           mkdir -p AnyKernel3/modules
-          find out -name "*.ko" -exec cp {} AnyKernel3/modules/ \; 2>/dev/null || true
+          find out -name "*.ko" -exec cp {} AnyKernel3/modules/ \;
           cd AnyKernel3
           zip -r ../NetHunter_Kernel_OnePlus_SM8150.zip *
 
