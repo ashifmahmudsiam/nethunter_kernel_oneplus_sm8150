@@ -34,65 +34,52 @@ jobs:
           tar -xvf clang-r563880c.tar.gz
           cd ..
 
-      - name: Merge Defconfigs
+      - name: Merge Defconfigs (Developer Method)
         run: |
           export PATH=$PWD/toolchains/bin:$PATH
           mkdir -p out
+          # ডেভেলপারের build.sh-এর হুবহু কপি (ধাপ ২)
           KCONFIG_CONFIG=out/.config scripts/kconfig/merge_config.sh -m -r \
             arch/arm64/configs/vendor/sm8150-perf_defconfig \
             arch/arm64/configs/vendor/oplus.config
-
-      - name: Fix Configurations (After olddefconfig)
-        run: |
-          export PATH=$PWD/toolchains/bin:$PATH
-          # প্রথমে olddefconfig চালানো
+          
+          # ডেভেলপারের build.sh-এ nconfig আছে, যা ইন্টারঅ্যাকটিভ।
+          # গিটহাবে nconfig চালানো সম্ভব নয়, তাই আমরা olddefconfig চালাচ্ছি
+          # যাতে সব নতুন কনফিগ ডিফল্ট মানে সেট হয়।
           make ARCH=arm64 O=out \
             CROSS_COMPILE=aarch64-linux-gnu- \
             CROSS_COMPILE_32=arm-linux-gnueabi- \
             LLVM=1 LLVM_IAS=1 AS=llvm-as \
             olddefconfig
-          
-          # ⚡ এখন olddefconfig-এর পরে জোর করে কনফিগ বসানো
-          # (তবে এবার olddefconfig আর চালানো হবে না, তাই এটি টিক থাকবে)
-          sed -i 's/CONFIG_CC_STACKPROTECTOR_STRONG=y/# CONFIG_CC_STACKPROTECTOR_STRONG is not set/' out/.config
-          sed -i 's/CONFIG_CC_STACKPROTECTOR=y/# CONFIG_CC_STACKPROTECTOR is not set/' out/.config
-          sed -i 's/CONFIG_CC_STACKPROTECTOR_REGULAR=y/# CONFIG_CC_STACKPROTECTOR_REGULAR is not set/' out/.config
-          
-          # জরুরি কনফিগ যোগ
-          echo "CONFIG_COMPAT=y" >> out/.config
-          echo "CONFIG_NR_CPUS=8" >> out/.config
-          echo "# CONFIG_BPFILTER is not set" >> out/.config
-          echo "# CONFIG_MHI_BUS_ARCH_QCOM is not set" >> out/.config
-          
-          # নিশ্চিত করা যে কনফিগ বসেছে
-          grep -E "STACKPROTECTOR" out/.config || echo "No stack protector found (good)"
 
-      - name: Build Kernel (Image.gz)
+      - name: Build Kernel (Image.gz) - Developer Method
         run: |
           export PATH=$PWD/toolchains/bin:$PATH
-          export KCFLAGS="-DFULL_THROTTLE_BOOST=1 -Wno-error=implicit-function-declaration -Wno-error=declaration-after-statement -Wno-error=unused-variable -Wno-error=int-conversion -Wno-error=macro-redefined -Wno-error=incompatible-pointer-types -Wno-error=shift-count-overflow -Wno-error=return-type -Wno-error=maybe-uninitialized"
+          # ডেভেলপারের build.sh-এর হুবহু কপি (ধাপ ৪)
+          # কোনো KCFLAGS যোগ করা হয়নি, কারণ ডেভেলপার কিছু যোগ করেননি
           make -j$(nproc) ARCH=arm64 O=out \
             CROSS_COMPILE=aarch64-linux-gnu- \
             CROSS_COMPILE_32=arm-linux-gnueabi- \
             LLVM=1 LLVM_IAS=1 AS=llvm-as \
             Image.gz
 
-      - name: Build Modules
+      - name: Build Modules - Developer Method
         run: |
           export PATH=$PWD/toolchains/bin:$PATH
-          export KCFLAGS="-DFULL_THROTTLE_BOOST=1 -Wno-error=implicit-function-declaration -Wno-error=declaration-after-statement -Wno-error=unused-variable -Wno-error=int-conversion -Wno-error=macro-redefined -Wno-error=incompatible-pointer-types -Wno-error=shift-count-overflow -Wno-error=return-type -Wno-error=maybe-uninitialized"
+          # ডেভেলপারের build.sh-এর হুবহু কপি (ধাপ ৫)
+          # কোনো KCFLAGS যোগ করা হয়নি
           make -j$(nproc) ARCH=arm64 O=out \
             CROSS_COMPILE=aarch64-linux-gnu- \
             CROSS_COMPILE_32=arm-linux-gnueabi- \
             LLVM=1 LLVM_IAS=1 AS=llvm-as \
-            modules || true
+            modules
 
       - name: Clone AnyKernel3 & Prepare Zip
         run: |
           git clone https://github.com/osm0sis/AnyKernel3.git -b master
           cp out/arch/arm64/boot/Image.gz AnyKernel3/
           mkdir -p AnyKernel3/modules
-          find out -name "*.ko" -exec cp {} AnyKernel3/modules/ \; 2>/dev/null || true
+          find out -name "*.ko" -exec cp {} AnyKernel3/modules/ \;
           cd AnyKernel3
           zip -r ../NetHunter_Kernel_OnePlus_SM8150.zip *
 
