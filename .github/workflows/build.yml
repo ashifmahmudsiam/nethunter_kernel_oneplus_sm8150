@@ -1,7 +1,7 @@
 name: Build NetHunter Kernel
 
 on:
-  workflow_dispatch: # ম্যানুয়ালি রান করার জন্য
+  workflow_dispatch:
 
 jobs:
   build:
@@ -69,6 +69,12 @@ jobs:
           echo "CONFIG_UFS_FEATURE_LPM=y" >> out/.config
           echo "CONFIG_SPMI=y" >> out/.config
           echo "CONFIG_SPMI_MSM_PMIC_ARB=y" >> out/.config
+          # ⚡ নতুন কনফিগ: ক্লক ফ্রেমওয়ার্ক
+          echo "CONFIG_COMMON_CLK=y" >> out/.config
+          echo "CONFIG_COMMON_CLK_QCOM=y" >> out/.config
+          echo "CONFIG_QCOM_CLK_RPMH=y" >> out/.config
+          echo "CONFIG_QCOM_CLK_SMD_RPM=y" >> out/.config
+          echo "CONFIG_MSM_GCC_8150=y" >> out/.config
           echo "# CONFIG_MHI_BUS_ARCH_QCOM is not set" >> out/.config
           echo "# CONFIG_MHI_BUS is not set" >> out/.config
           
@@ -82,7 +88,7 @@ jobs:
       - name: Build Kernel (Image.gz)
         run: |
           export PATH=$PWD/toolchains/bin:$PATH
-          export KCFLAGS="-DFULL_THROTTLE_BOOST=1 -DCLKFLAG_NORETAIN_MEM=0 -DCLKFLAG_RETAIN_MEM=0 -Wno-error=implicit-function-declaration -Wno-error=declaration-after-statement -Wno-error=unused-variable -Wno-error=int-conversion -Wno-error=macro-redefined"
+          export KCFLAGS="-DFULL_THROTTLE_BOOST=1 -DCLKFLAG_NORETAIN_MEM=0 -DCLKFLAG_RETAIN_MEM=0 -DCLKFLAG_NORETAIN_PERIPH=0 -DCLKFLAG_RETAIN_PERIPH=0 -Wno-error=implicit-function-declaration -Wno-error=declaration-after-statement -Wno-error=unused-variable -Wno-error=int-conversion -Wno-error=macro-redefined -Wno-error=incompatible-pointer-types"
           make -j$(nproc) ARCH=arm64 O=out \
             CROSS_COMPILE=aarch64-linux-gnu- \
             CROSS_COMPILE_32=arm-linux-gnueabi- \
@@ -92,7 +98,7 @@ jobs:
       - name: Build Modules
         run: |
           export PATH=$PWD/toolchains/bin:$PATH
-          export KCFLAGS="-DFULL_THROTTLE_BOOST=1 -DCLKFLAG_NORETAIN_MEM=0 -DCLKFLAG_RETAIN_MEM=0 -Wno-error=implicit-function-declaration -Wno-error=declaration-after-statement -Wno-error=unused-variable -Wno-error=int-conversion -Wno-error=macro-redefined"
+          export KCFLAGS="-DFULL_THROTTLE_BOOST=1 -DCLKFLAG_NORETAIN_MEM=0 -DCLKFLAG_RETAIN_MEM=0 -DCLKFLAG_NORETAIN_PERIPH=0 -DCLKFLAG_RETAIN_PERIPH=0 -Wno-error=implicit-function-declaration -Wno-error=declaration-after-statement -Wno-error=unused-variable -Wno-error=int-conversion -Wno-error=macro-redefined -Wno-error=incompatible-pointer-types"
           make -j$(nproc) ARCH=arm64 O=out \
             CROSS_COMPILE=aarch64-linux-gnu- \
             CROSS_COMPILE_32=arm-linux-gnueabi- \
